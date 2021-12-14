@@ -11,12 +11,12 @@ import           Cardano.Api.Shelley      (PlutusScript (..), PlutusScriptV1)
 import           PlutusTx
 import           PlutusTx.Prelude
 import           Ledger
-  ( PubKeyHash
+  ( PubKeyHash (..)
   , Address (..)
   )
 import qualified PlutusTx.AssocMap as M
 import           PlutusTx.AssocMap (Map)
-import           Plutus.V1.Ledger.Value
+import           Plutus.V1.Ledger.Value as V
 import           Plutus.V1.Ledger.Contexts
 import           Plutus.V1.Ledger.Scripts
 import           Ledger.Typed.Scripts
@@ -86,6 +86,12 @@ mergeInequalities = M.unionWith (+)
 mergeAll :: [Map PubKeyHash Value] -> Map PubKeyHash Value
 mergeAll = foldr mergeInequalities M.empty
 
+validatePaymentMap :: Map PubKeyHash Value -> Bool
+validatePaymentMap = error ()
+
+findToken :: Value -> CurrencySymbol -> Map TokenName Integer
+findToken = error ()
+
 -------------------------------------------------------------------------------
 -- Boilerplate
 -------------------------------------------------------------------------------
@@ -105,19 +111,90 @@ PlutusTx.unstableMakeIsData ''Payout
 -------------------------------------------------------------------------------
 -- Validation
 -------------------------------------------------------------------------------
+genZeroPolicyId :: CurrencySymbol
+genZeroPolicyId = "d6cfdbedd242056674c0e51ead01785497e3a48afbbb146dc72ee1e2"
+
+extractPkh :: BuiltinByteString -> BuiltinByteString
+extractPkh = sliceByteString 0 28
+
+tokenNameToPkh :: TokenName -> PubKeyHash
+tokenNameToPkh (TokenName bs) = PubKeyHash $ extractPkh bs
+
+tokenNameToGen :: TokenName -> Integer
+tokenNameToGen (TokenName bs) = indexByteString bs 28
+
+isGenZero :: TokenName -> Bool
+isGenZero = (==0) . tokenNameToGen
+
+gen0ToGen1TokenName :: TokenName -> TokenName
+gen0ToGen1TokenName (TokenName bs) = TokenName $ extractPkh bs <> consByteString 1 emptyByteString
+
+toExpectedGen1Tokens
+  :: CurrencySymbol
+  -> Map TokenName Integer
+  -> Map PubKeyHash Value
+toExpectedGen1Tokens currencySym genZeros =
+  let
+    pkhsAndAssets :: [Map PubKeyHash Value]
+    pkhsAndAssets
+      = map (\(t, c) -> M.singleton (tokenNameToPkh t)
+              $ V.singleton currencySym (gen0ToGen1TokenName t) c
+            )
+      $ M.toList genZeros
+
+  in mergeAll pkhsAndAssets
+
+genZeroTokensToBurnAndMint
+  :: CurrencySymbol
+  -> Map TokenName Integer
+  -> Value
+genZeroTokensToBurnAndMint c genZeros =
+  let
+    tokensToBurn = Value $ M.singleton c $ fmap negate genZeros
+    tokensToMint
+      = Value
+      $ M.singleton c
+      $ M.fromList
+      $ map (\(t, i) -> (gen0ToGen1TokenName t, i))
+      $ M.toList genZeros
+  in tokensToBurn <> tokensToMint
 
 {-# INLINABLE exchangeValidator #-}
-exchangeValidator ::  BuiltinData -> ScriptContext -> Bool
-exchangeValidator _ _ = True
+exchangeValidator :: CurrencySymbol -> BuiltinData -> ScriptContext -> Bool
+exchangeValidator genZero _ ctx =
+  let
+    info :: TxInfo
+    !info = scriptContextTxInfo ctx
+
+    inputValue :: Value
+    !inputValue = valueSpent info
+
+    genZeroTokens :: Map TokenName Integer
+    !genZeroTokens
+      = M.fromList
+      $ filter (isGenZero . fst)
+      $ M.toList
+      $ findToken inputValue genZero
+
+    expectedGenOneTokens :: Map PubKeyHash Value
+    !expectedGenOneTokens = toExpectedGen1Tokens genZero genZeroTokens
+
+    expectedMintValue :: Value
+    !expectedMintValue = genZeroTokensToBurnAndMint genZero genZeroTokens
+
+  in traceIfFalse "Gen 1 tokens not outputted!" (validatePaymentMap expectedGenOneTokens)
+  && traceIfFalse "Incorrect values minted!" (expectedMintValue == txInfoMint info)
 
 -------------------------------------------------------------------------------
 -- Entry Points
 -------------------------------------------------------------------------------
 
-validator :: MintingPolicy
-validator =
-  mkMintingPolicyScript
-    $$(PlutusTx.compile [|| wrapMintingPolicy exchangeValidator ||])
+validator :: CurrencySymbol -> MintingPolicy
+validator genZero =
+  mkMintingPolicyScript $
+    $$(PlutusTx.compile [|| \x -> wrapMintingPolicy $ exchangeValidator x ||])
+    `applyCode`
+     liftCode genZero
 
 iamxExchange :: PlutusScript PlutusScriptV1
 iamxExchange
@@ -126,4 +203,5 @@ iamxExchange
   $ LB.toStrict
   $ serialise
   $ Validator
-  $ unMintingPolicyScript validator
+  $ unMintingPolicyScript
+  $ validator genZeroPolicyId
