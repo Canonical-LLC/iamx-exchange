@@ -1,0 +1,61 @@
+Cabal-Version:      2.4
+Name:               iamx-token-exchange
+Version:            1.0.0.0
+Build-Type:         Simple
+
+Author:              Jonathan Fischoff
+Maintainer:          jonathan@canonicalllc.com
+Copyright:           © 2021 Jonathan Fischoff
+License:             Apache-2.0
+License-files:       LICENSE
+
+
+library
+  default-language:     Haskell2010
+
+  default-extensions:   NoImplicitPrelude
+                        OverloadedStrings
+                        ScopedTypeVariables
+                        MultiParamTypeClasses
+                        RecordWildCards
+                        TemplateHaskell
+                        QuasiQuotes
+                        TypeApplications
+                        TypeFamilies
+                        DataKinds
+                        BangPatterns
+                        NumericUnderscores
+                        LambdaCase
+                        NamedFieldPuns
+
+  exposed-modules: Canonical.IamxTokenExchange
+  build-depends:       base
+                     , bytestring
+                     , plutus-ledger
+                     , plutus-ledger-api
+                     , plutus-tx-plugin
+                     , plutus-tx
+                     , serialise
+                     , cardano-api
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall -Werror -fobject-code -fno-ignore-interface-pragmas -fno-omit-interface-pragmas -fno-strictness -fno-spec-constr -fno-specialise
+
+
+executable create-smart-contract
+  default-extensions: NoImplicitPrelude
+                      OverloadedStrings
+                      ScopedTypeVariables
+                      RecordWildCards
+                      LambdaCase
+                      BangPatterns
+  hs-source-dirs:       app
+  main-is:              Main.hs
+  ghc-options:          -Wall -Werror -threaded -rtsopts "-with-rtsopts=-T"
+
+  build-depends:        base
+                      , bytestring
+                      , cardano-api
+                      , iamx-token-exchange
+                      , plutus-ledger-api
+                      , cardano-ledger-alonzo
