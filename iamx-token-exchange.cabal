@@ -27,8 +27,10 @@ library
                         NumericUnderscores
                         LambdaCase
                         NamedFieldPuns
+                        DeriveGeneric
 
   exposed-modules: Canonical.IamxTokenExchange
+                   Canonical.IamxTokenExchange.Types
   build-depends:       base
                      , bytestring
                      , plutus-ledger
@@ -59,3 +61,5 @@ executable create-smart-contract
                       , iamx-token-exchange
                       , plutus-ledger-api
                       , cardano-ledger-alonzo
+                      , optparse-generic
+                      , plutus-ledger
