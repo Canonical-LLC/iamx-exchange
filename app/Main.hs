@@ -7,6 +7,23 @@ import Prelude
 import Options.Generic
 import Ledger
 import Data.String
+import Plutus.V1.Ledger.Bytes
+
+parseUTxO :: String -> TxOutRef
+parseUTxO s =
+  let
+    (x, y) = span (/= '#') s
+  in
+    TxOutRef (TxId $ getLedgerBytes $ fromString x) $ read $ tail y
+
+instance ParseField TxOutRef where
+  parseField w x y z = parseUTxO <$> parseField w x y z
+  readField = parseUTxO <$> readField
+
+instance ParseRecord TxOutRef where
+  parseRecord = fromOnly <$> parseRecord
+
+instance ParseFields TxOutRef
 
 instance ParseField PubKeyHash where
   parseField w x y z = fromString <$> parseField w x y z
@@ -16,15 +33,6 @@ instance ParseRecord PubKeyHash where
   parseRecord = fromOnly <$> parseRecord
 
 instance ParseFields PubKeyHash
-
-instance ParseField CurrencySymbol where
-  parseField w x y z = fromString <$> parseField w x y z
-  readField = fromString <$> readField
-
-instance ParseRecord CurrencySymbol where
-  parseRecord = fromOnly <$> parseRecord
-
-instance ParseFields CurrencySymbol
 
 instance ParseField TokenName where
   parseField w x y z = fromString <$> parseField w x y z

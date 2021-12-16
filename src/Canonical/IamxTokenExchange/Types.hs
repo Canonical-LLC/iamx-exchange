@@ -10,14 +10,15 @@ import           GHC.Generics
 
 data Config = Config
   { iamxWallet        :: !PubKeyHash
-  , iamxPolicyId      :: !CurrencySymbol
-  , iamxTokenName :: !TokenName
+  , iamxTokenName     :: !TokenName
+  , initialUtxo       :: !TxOutRef
   } deriving (Generic)
 
 makeLift ''Config
 
 data Action
-  = Burn
+  = InitialMint
+  | Burn
   | Keep
   | Exchange
       { rewardAddress :: !PubKeyHash

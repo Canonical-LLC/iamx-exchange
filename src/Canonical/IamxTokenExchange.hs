@@ -27,11 +27,14 @@ exchangeValidator Config {..} redeemer ctx =
     inputValue :: Value
     !inputValue = valueSpent info
 
+    iamxCurrencySymbol :: CurrencySymbol
+    iamxCurrencySymbol = ownCurrencySymbol ctx
+
     mkIamxTokenValue :: Integer -> Value
-    mkIamxTokenValue = singleton iamxPolicyId iamxTokenName
+    mkIamxTokenValue = singleton iamxCurrencySymbol iamxTokenName
 
     iamxTokenCount :: Value -> Integer
-    iamxTokenCount v = valueOf v iamxPolicyId iamxTokenName
+    iamxTokenCount v = valueOf v iamxCurrencySymbol iamxTokenName
 
     validRewardAndMinting :: PubKeyHash -> Integer -> Bool
     validRewardAndMinting pkh rewardAmount
@@ -40,9 +43,16 @@ exchangeValidator Config {..} redeemer ctx =
 
     outputIsValid :: Bool
     outputIsValid = case redeemer of
-      Burn -> txInfoMint info == mkIamxTokenValue (-1)
-      Keep -> valuePaidTo info iamxWallet == mkIamxTokenValue 1
-      Exchange {..} -> case () of
+      InitialMint
+        -> traceIfFalse "Invalid inital mint amount!"
+          (txInfoMint info == mkIamxTokenValue 33_000_000_000)
+        && traceIfFalse "Invalid inital utxo!"
+          (any (\i -> txInInfoOutRef i == initialUtxo) $ txInfoInputs info)
+      Burn -> traceIfFalse "Invalid burn amount!"
+            $ txInfoMint info == mkIamxTokenValue (-1)
+      Keep -> traceIfFalse "Token not transfered to IAMX wallet!"
+            $ valuePaidTo info iamxWallet == mkIamxTokenValue 1
+      Exchange {..} -> traceIfFalse "Invalid reward produced!" $ case () of
         () -- Working around a bug where case statements desugar to
            -- equalities with Prelude.== instead of PlutusTx.Prelude.==
           | generation == 0 -> validRewardAndMinting rewardAddress 1
