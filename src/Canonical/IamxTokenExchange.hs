@@ -111,8 +111,27 @@ PlutusTx.unstableMakeIsData ''Payout
 -------------------------------------------------------------------------------
 -- Validation
 -------------------------------------------------------------------------------
-genZeroPolicyId :: CurrencySymbol
-genZeroPolicyId = "d6cfdbedd242056674c0e51ead01785497e3a48afbbb146dc72ee1e2"
+
+-- Are we going 1 1 or 1 2?
+-- also we need to mint a "standard" token and send it to the treasury
+-- same policy id and the token name is IAMX?
+
+-- The basic is as follows
+-- The first time through everything is easy
+-- you increment the generation
+-- send the new token to the first receiver address
+-- send the standard token to the treasury address
+-- The policy id is going to keep changing
+--
+
+treasuryAddress :: PubKeyHash
+treasuryAddress = error ()
+
+tokenNamePolicyId :: TokenName
+tokenNamePolicyId = "IAMX"
+
+iamxPolicyId :: CurrencySymbol
+iamxPolicyId = "d6cfdbedd242056674c0e51ead01785497e3a48afbbb146dc72ee1e2"
 
 extractPkh :: BuiltinByteString -> BuiltinByteString
 extractPkh = sliceByteString 0 28
