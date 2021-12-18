@@ -12,8 +12,8 @@ receiverAddr=$(cat ~/$BLOCKCHAIN_PREFIX/exchanger.addr)
 cardano-cli transaction build \
   --alonzo-era \
   $BLOCKCHAIN \
-  --tx-in 1b8112217466923c8fcf0f6fb5cd9f66f7c725add3760c0cf6e465151478c206#0 \
-  --tx-in 1b8112217466923c8fcf0f6fb5cd9f66f7c725add3760c0cf6e465151478c206#2 \
+  --tx-in b09c5a52a54a87f9e04104e1cfcfd396153e796f3b1815759b9889dda8edf083#0 \
+  --tx-in b09c5a52a54a87f9e04104e1cfcfd396153e796f3b1815759b9889dda8edf083#2 \
   --tx-out "$receiverAddr + 2000000 lovelace + 33000000000 $(cat $baseDir/$BLOCKCHAIN_PREFIX/iamx-exchange-policy-id.txt).49414d58" \
   --change-address $senderAddr \
   --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \

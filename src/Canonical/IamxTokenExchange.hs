@@ -63,18 +63,16 @@ exchangeValidator Config {..} redeemer ctx =
         -> correctValueOfInputTokens
         && traceIfFalse "Invalid burn amount!"
             (txInfoMint info == mkIamxTokenValue (-1))
-      Exchange {..}
+      Reward {..}
         -> correctValueOfInputTokens
-        && if generation == 0 then
-              validRewardAndMinting rewardAddress 1
-           else if generation == 1 then
+        && if generation == 1 then
               validRewardAndMinting rewardAddress 2
            else if generation == 2 then
               validRewardAndMinting rewardAddress 3
            else if generation == 3 then
               validRewardAndMinting rewardAddress 5
            else
-              traceError "Invalid generation! Expected 0 - 3."
+              traceError "Invalid generation! Expected 1 - 3."
 
 -------------------------------------------------------------------------------
 -- Entry Points
