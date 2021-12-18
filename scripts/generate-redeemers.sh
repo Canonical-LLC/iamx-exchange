@@ -8,7 +8,7 @@ mkdir -p $tempDir/$BLOCKCHAIN_PREFIX/redeemers
 
 cat << EOF > $tempDir/$BLOCKCHAIN_PREFIX/redeemers/exchange.json
 {
-  "constructor": 3,
+  "constructor": 2,
   "fields": [
     {
       "bytes": "$exchangerPkh"

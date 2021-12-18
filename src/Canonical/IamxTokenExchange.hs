@@ -56,10 +56,6 @@ exchangeValidator Config {..} redeemer ctx =
         -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
         && traceIfFalse "Invalid burn amount!"
             (txInfoMint info == mkIamxTokenValue (-1))
-      Keep
-        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
-        && traceIfFalse "Token not transfered to IAMX wallet!"
-            (valuePaidTo info iamxWallet == mkIamxTokenValue 1)
       Exchange {..}
         -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
         && traceIfFalse "Invalid reward produced!" (case () of

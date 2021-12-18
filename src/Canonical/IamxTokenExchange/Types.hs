@@ -20,7 +20,6 @@ makeLift ''Config
 data Action
   = InitialMint
   | Burn
-  | Keep
   | Exchange
       { rewardAddress :: !PubKeyHash
       , generation    :: !Integer

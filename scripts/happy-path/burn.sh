@@ -3,7 +3,7 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/..
 
-$baseDir/core/manual-mint.sh $1 $2 \
+$baseDir/core/burn.sh \
   $(cat ~/$BLOCKCHAIN_PREFIX/iamx.addr) \
   ~/$BLOCKCHAIN_PREFIX/iamx.skey \
   $(cat ~/$BLOCKCHAIN_PREFIX/exchanger.addr) \
