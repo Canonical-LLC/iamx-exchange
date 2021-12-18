@@ -36,23 +36,33 @@ exchangeValidator Config {..} redeemer ctx =
     iamxTokenCount :: Value -> Integer
     iamxTokenCount v = valueOf v iamxCurrencySymbol iamxTokenName
 
+    outputDiff :: Integer
+    outputDiff = iamxTokenCount (valueProduced info) - iamxTokenCount inputValue
+
     validRewardAndMinting :: PubKeyHash -> Integer -> Bool
     validRewardAndMinting pkh rewardAmount
       =  iamxTokenCount (valuePaidTo info pkh) == rewardAmount
       && iamxTokenCount (txInfoMint info) == (rewardAmount - 1)
+      && outputDiff == rewardAmount
 
-    outputIsValid :: Bool
-    outputIsValid = case redeemer of
+  in traceIfFalse "Not signed by IAMX" (info `txSignedBy` iamxWallet)
+  && case redeemer of
       InitialMint
         -> traceIfFalse "Invalid inital mint amount!"
           (txInfoMint info == mkIamxTokenValue 33_000_000_000)
         && traceIfFalse "Invalid inital utxo!"
           (any (\i -> txInInfoOutRef i == initialUtxo) $ txInfoInputs info)
-      Burn -> traceIfFalse "Invalid burn amount!"
-            $ txInfoMint info == mkIamxTokenValue (-1)
-      Keep -> traceIfFalse "Token not transfered to IAMX wallet!"
-            $ valuePaidTo info iamxWallet == mkIamxTokenValue 1
-      Exchange {..} -> traceIfFalse "Invalid reward produced!" $ case () of
+      Burn
+        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
+        && traceIfFalse "Invalid burn amount!"
+            (txInfoMint info == mkIamxTokenValue (-1))
+      Keep
+        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
+        && traceIfFalse "Token not transfered to IAMX wallet!"
+            (valuePaidTo info iamxWallet == mkIamxTokenValue 1)
+      Exchange {..}
+        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
+        && traceIfFalse "Invalid reward produced!" (case () of
         () -- Working around a bug where case statements desugar to
            -- equalities with Prelude.== instead of PlutusTx.Prelude.==
           | generation == 0 -> validRewardAndMinting rewardAddress 1
@@ -60,10 +70,7 @@ exchangeValidator Config {..} redeemer ctx =
           | generation == 2 -> validRewardAndMinting rewardAddress 3
           | generation == 3 -> validRewardAndMinting rewardAddress 5
           | otherwise -> traceError "Invalid generation! Expected 0 - 3"
-
-  in traceIfFalse "Not signed by IAMX" (info `txSignedBy` iamxWallet)
-  && traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue == 1)
-  && traceIfFalse "output is invalid!" outputIsValid
+        )
 
 -------------------------------------------------------------------------------
 -- Entry Points

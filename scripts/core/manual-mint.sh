@@ -3,15 +3,14 @@ set -eux
 thisDir=$(dirname "$0")
 baseDir=$thisDir/..
 
-iamxAddr=$1
-iamxSigningKey=$2
-exchangerAddr=$3
-exchangerSigningKey=$4
-rewardAddr=$5
-imaxOutput=$6
-rewardOutput=$7
-mintValue=$8
-redeemerFile=$9
+tokenUtxo=$1
+feesUtxo=$2
+iamxAddr=$3
+iamxSigningKey=$4
+exchangerAddr=$5
+exchangerSigningKey=$6
+mintValue=$7
+redeemerFile=$8
 
 mintFile=$baseDir/$BLOCKCHAIN_PREFIX/iamx-exchange.plutus
 scriptHash=$(cat $baseDir/$BLOCKCHAIN_PREFIX/iamx-exchange.addr)
@@ -20,37 +19,14 @@ $baseDir/hash-plutus.sh
 bodyFile=temp/bid-tx-body.01
 outFile=temp/bid-tx.01
 
-changeOutput=$(cardano-cli-balance-fixer change --address $exchangerAddr $BLOCKCHAIN)
-
-extraOutput=""
-if [ "$changeOutput" != "" ];then
-  extraOutput="+ $changeOutput"
-fi
-
-imaxOutputFlag=""
-if [ "$imaxOutput" != "" ];then
-  imaxOutputFlag="$iamxAddr + $imaxOutput"
-else
-  imaxOutputFlag="$exchangerAddr + 1000000 lovelace"
-fi
-
-rewardOutputFlag=""
-if [ "$rewardOutput" != "" ];then
-  rewardOutputFlag="$rewardAddr + $rewardOutput"
-else
-  rewardOutputFlag="$exchangerAddr + 1000000 lovelace"
-fi
-
 cardano-cli transaction build \
     --alonzo-era \
     $BLOCKCHAIN \
-    $(cardano-cli-balance-fixer input --address $exchangerAddr $BLOCKCHAIN ) \
+    --tx-in $tokenUtxo \
+    --tx-in $feesUtxo \
     --required-signer $iamxSigningKey \
     --required-signer $exchangerSigningKey \
-    --tx-in-collateral $(cardano-cli-balance-fixer collateral --address $exchangerAddr $BLOCKCHAIN) \
-    --tx-out "$rewardOutputFlag" \
-    --tx-out "$imaxOutputFlag" \
-    --tx-out "$exchangerAddr + 3000000 lovelace $extraOutput" \
+    --tx-in-collateral $feesUtxo\
     --change-address $exchangerAddr \
     --mint "$mintValue" \
     --mint-script-file $mintFile \

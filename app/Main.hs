@@ -50,6 +50,7 @@ data Opts = Opts
   { plutusCorePath :: FilePath
   , config         :: Config
   }
+  deriving (Show)
 
 instance ParseRecord Opts where
   parseRecord
@@ -63,7 +64,9 @@ instance ParseRecord Opts where
 
 main :: IO ()
 main = do
-  Opts {..} <- getRecord "Create IAMX Exchange smart contract"
+  opts@Opts {..} <- getRecord "Create IAMX Exchange smart contract"
+
+  print opts
 
   writeFileTextEnvelope plutusCorePath Nothing (iamxExchange config) >>= \case
     Left err -> print $ displayError err

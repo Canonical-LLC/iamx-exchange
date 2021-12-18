@@ -1,17 +1,21 @@
 set -eux
 
+thisDir=$(dirname "$0")
+baseDir=$thisDir/..
+
 bodyFile=temp/consolidate-tx-body.01
-signingKey=~/$BLOCKCHAIN_PREFIX/seller.skey
+signingKey=~/$BLOCKCHAIN_PREFIX/iamx.skey
 outFile=temp/consolidate-tx.01
-senderAddr=$(cat ~/$BLOCKCHAIN_PREFIX/seller.addr)
-receiverAddr=$(cat ~/$BLOCKCHAIN_PREFIX/buyer.addr)
+senderAddr=$(cat ~/$BLOCKCHAIN_PREFIX/iamx.addr)
+receiverAddr=$(cat ~/$BLOCKCHAIN_PREFIX/exchanger.addr)
 
 cardano-cli transaction build \
   --alonzo-era \
   $BLOCKCHAIN \
-  --tx-in 07723a68a710ec079b9382eb84a92830565518fd31e58d362b066b5dde4e3476#0 \
-  --tx-out "$receiverAddr +20000000 lovelace" \
-  --change-address $receiverAddr \
+  --tx-in c8c92226542595c60c91db0138ca46ec614178574e1c471e0e12cac0b971232b#0 \
+  --tx-in c8c92226542595c60c91db0138ca46ec614178574e1c471e0e12cac0b971232b#2 \
+  --tx-out "$receiverAddr + 2000000 lovelace + 33000000000 $(cat $baseDir/$BLOCKCHAIN_PREFIX/iamx-exchange-policy-id.txt).49414d58" \
+  --change-address $senderAddr \
   --protocol-params-file scripts/$BLOCKCHAIN_PREFIX/protocol-parameters.json \
   --out-file $bodyFile
 
