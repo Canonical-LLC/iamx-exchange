@@ -7,13 +7,13 @@ import           Ledger
 import           PlutusTx
 import           PlutusTx.Prelude
 import           GHC.Generics
-import           Prelude
+import qualified Prelude as P
 
 data Config = Config
   { iamxWallet        :: !PubKeyHash
   , iamxTokenName     :: !TokenName
   , initialUtxo       :: !TxOutRef
-  } deriving (Show, Generic)
+  } deriving (P.Show, Generic)
 
 makeLift ''Config
 

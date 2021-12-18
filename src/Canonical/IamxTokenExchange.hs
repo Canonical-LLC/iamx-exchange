@@ -16,6 +16,26 @@ import           Plutus.V1.Ledger.Contexts
 import           Plutus.V1.Ledger.Scripts
 import           Ledger.Typed.Scripts
 import           Canonical.IamxTokenExchange.Types
+import           GHC.Generics
+import qualified Prelude as P
+
+data Config = Config
+  { iamxWallet        :: !PubKeyHash
+  , iamxTokenName     :: !TokenName
+  , initialUtxo       :: !TxOutRef
+  } deriving (P.Show, Generic)
+
+makeLift ''Config
+
+data Action
+  = InitialMint
+  | Burn
+  | Exchange
+      { rewardAddress :: !PubKeyHash
+      , generation    :: !Integer
+      }
+
+unstableMakeIsData ''Action
 
 {-# INLINABLE exchangeValidator #-}
 exchangeValidator :: Config -> Action -> ScriptContext -> Bool
@@ -41,32 +61,40 @@ exchangeValidator Config {..} redeemer ctx =
 
     validRewardAndMinting :: PubKeyHash -> Integer -> Bool
     validRewardAndMinting pkh rewardAmount
-      =  iamxTokenCount (valuePaidTo info pkh) == rewardAmount
-      && iamxTokenCount (txInfoMint info) == (rewardAmount - 1)
-      && outputDiff == rewardAmount
+      =  traceIfFalse "Invalid reward produced!"
+          (iamxTokenCount (valuePaidTo info pkh) >= rewardAmount)
+      && traceIfFalse "Invalid mint amount!"
+          (iamxTokenCount (txInfoMint info) == (rewardAmount - 1))
+      && traceIfFalse "Invalid output diff!"
+          (outputDiff >= (rewardAmount - 1))
+
+    correctValueOfInputTokens :: Bool
+    correctValueOfInputTokens =
+      traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
 
   in traceIfFalse "Not signed by IAMX" (info `txSignedBy` iamxWallet)
   && case redeemer of
       InitialMint
         -> traceIfFalse "Invalid inital mint amount!"
-          (txInfoMint info == mkIamxTokenValue 33_000_000_000)
+            (txInfoMint info == mkIamxTokenValue 33_000_000_000)
         && traceIfFalse "Invalid inital utxo!"
-          (any (\i -> txInInfoOutRef i == initialUtxo) $ txInfoInputs info)
+            (any (\i -> txInInfoOutRef i == initialUtxo) $ txInfoInputs info)
       Burn
-        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
+        -> correctValueOfInputTokens
         && traceIfFalse "Invalid burn amount!"
             (txInfoMint info == mkIamxTokenValue (-1))
       Exchange {..}
-        -> traceIfFalse "Wrong number of IAMX tokens" (iamxTokenCount inputValue >= 1)
-        && traceIfFalse "Invalid reward produced!" (case () of
-        () -- Working around a bug where case statements desugar to
-           -- equalities with Prelude.== instead of PlutusTx.Prelude.==
-          | generation == 0 -> validRewardAndMinting rewardAddress 1
-          | generation == 1 -> validRewardAndMinting rewardAddress 2
-          | generation == 2 -> validRewardAndMinting rewardAddress 3
-          | generation == 3 -> validRewardAndMinting rewardAddress 5
-          | otherwise -> traceError "Invalid generation! Expected 0 - 3"
-        )
+        -> correctValueOfInputTokens
+        && if generation == 0 then
+              validRewardAndMinting rewardAddress 1
+           else if generation == 1 then
+              validRewardAndMinting rewardAddress 2
+           else if generation == 2 then
+              validRewardAndMinting rewardAddress 3
+           else if generation == 3 then
+              validRewardAndMinting rewardAddress 5
+           else
+              traceError "Invalid generation! Expected 0 - 3."
 
 -------------------------------------------------------------------------------
 -- Entry Points
