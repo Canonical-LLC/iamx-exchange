@@ -16,26 +16,6 @@ import           Plutus.V1.Ledger.Contexts
 import           Plutus.V1.Ledger.Scripts
 import           Ledger.Typed.Scripts
 import           Canonical.IamxTokenExchange.Types
-import           GHC.Generics
-import qualified Prelude as P
-
-data Config = Config
-  { iamxWallet        :: !PubKeyHash
-  , iamxTokenName     :: !TokenName
-  , initialUtxo       :: !TxOutRef
-  } deriving (P.Show, Generic)
-
-makeLift ''Config
-
-data Action
-  = InitialMint
-  | Burn
-  | Exchange
-      { rewardAddress :: !PubKeyHash
-      , generation    :: !Integer
-      }
-
-unstableMakeIsData ''Action
 
 {-# INLINABLE exchangeValidator #-}
 exchangeValidator :: Config -> Action -> ScriptContext -> Bool
